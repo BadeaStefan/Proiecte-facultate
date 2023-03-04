@@ -1,0 +1,74 @@
+void initializare_timer1(){
+
+ cli();//stop interrupts
+ //set timer1 interrupt at 1Hz
+ TCCR1A = 0;// set entire TCCR1A register to 0
+ TCCR1B = 0;// same for TCCR1B
+ TCNT1 = 0;//initialize counter value to 0
+ OCR1A = 15624;// = (16*10^6) / (1*1024) - 1 (must be <65536)
+ // set compare match register for 1Hz increments
+ // turn on CTC mode
+ TCCR1B |= (1 << WGM12);
+ // Set CS12 and CS10 bits for 1024 prescaler
+ TCCR1B |= (1 << CS12) | (1 << CS10);
+ // enable timer compare interrupt
+ TIMSK1 |= (1 << OCIE1A);
+ sei();//allow interrupts
+}
+ ISR(TIMER1_COMPA_vect)
+{
+ PORTB ^= (1<<PB5);
+
+}
+
+unsigned char date_primite;
+void serial_init()
+{  UBRR0=103;
+  UCSR0B=(1<<RXEN0)|(1<<TXEN0);
+  UCSR0C=(1<<USBS0)|(1<<UCSZ00)|(1<<UCSZ01);}
+unsigned char receptie_date(void)
+{while (!(UCSR0A&(1<<RXC0)));
+       return UDR0;}
+void transmisie_date (unsigned char date_detrimis)
+{while (!(UCSR0A&(1<<UDRE0)));
+       UDR0=date_detrimis;}
+
+
+void setup()
+{
+ //DDRB |= (1<<PB5);
+ initializare_timer1();
+ DDRD=0xFF;
+ DDRB=0xFF;
+ serial_init();
+}
+
+void loop()
+{
+char b1;
+  b1=PIND&0x08;
+  if(b1)
+  {
+    PORTD|=(1<<5);
+    PORTD&=~(1<<6);
+    PORTB|=(1<<0);
+    PORTD&=~(1<<7);
+}
+  else
+  {
+    PORTD|=(1<<6)|(1<<7);
+    PORTD&=~(1<<5);
+    PORTB&=~(1<<0);
+  }
+   char ar;
+ ar=receptie_date();
+ if(ar==0x41)
+ {
+  PORTB|=(1<<4);
+  }
+  if(ar==0x53)
+  {
+    PORTB&=~(1<<4);
+    }
+ 
+}
